@@ -33,6 +33,24 @@ $ pnpm install
 
 ## Compile and run the project
 
+Arcjet protects every registered HTTP route with Shield and a fixed window limit
+of 100 requests per 60 seconds per client IP. Both rules enforce in `LIVE` mode.
+Configuration is in `src/lib/arcjet/arcjet.module.ts`, and the global guard is
+registered in `AppModule`.
+
+The SDK requires ESM and Node.js 22.21 or later in the 22 series, or Node.js 24.5
+or later. This project uses ESM for both the application and Jest tests.
+
+For a fresh checkout, copy `.env.example` to `.env` and set `ARCJET_KEY` to the
+key for your Arcjet site. The local `.env` is ignored by Git. Use
+`ARCJET_ENV=development` for localhost, and set it to `production` when deployed.
+The application refuses to start without a nonempty key.
+
+Shield denials return HTTP 403. Rate limit denials return HTTP 429 with a
+`Retry-After` header. If Arcjet returns an error or request protection fails, the
+guard logs a warning and allows the request. Configure trusted proxy addresses
+in the SDK options if deployment uses a reverse proxy or load balancer.
+
 ```bash
 # development
 $ pnpm run start
