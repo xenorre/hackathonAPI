@@ -31,6 +31,66 @@
 $ pnpm install
 ```
 
+## Prisma and Prisma Postgres
+
+Set `DATABASE_URL` in `.env` to the `postgres://` or `postgresql://` connection
+string from your Prisma cloud database. Keep credentials in the ignored `.env`;
+`.env.example` contains only a placeholder.
+
+This project uses Prisma ORM 7.10 through `@prisma/prisma7`, alongside the Prisma 8
+CLI already installed for platform commands and skill synchronization. ORM
+commands use the `prisma7` binary and `prisma7.config.ts`. The existing
+`prisma.config.ts` belongs to Prisma 8. Running `pnpm exec prisma generate` with
+that CLI fails because it does not provide the Prisma 7 `generate` command.
+See the [official compatibility guide](https://www.prisma.io/docs/guides/upgrade-prisma-orm/postgresql).
+
+```bash
+# Validate the schema and regenerate the ESM TypeScript client
+$ pnpm prisma:validate
+$ pnpm prisma:generate
+
+# If the database already has application tables, import their schema first
+$ pnpm db:pull
+$ pnpm prisma:generate
+
+# After adding or changing models in prisma/schema.prisma
+$ pnpm db:migrate --name describe_your_change
+$ pnpm prisma:generate
+
+# Apply committed migrations in a deployment
+$ pnpm db:deploy
+
+# Browse the database
+$ pnpm db:studio
+```
+
+The initial schema contains only the PostgreSQL datasource and client generator.
+Add models for your application before creating its first migration. Setup does
+not create tables or change cloud data. `pnpm build`, development startup, and
+the test scripts generate the client into `src/generated/prisma`, which is
+ignored by Git. Client generation works without a database URL; starting the app
+and database commands require one. For production, install development
+dependencies, build, then prune them and start the compiled application with
+`pnpm start:prod`.
+
+`PrismaModule` is global and imported once in `AppModule`. Inject `PrismaService`
+into feature services; Nest owns the single client and its lifecycle:
+
+```ts
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../lib/database/prisma.service.js';
+
+@Injectable()
+export class ExampleService {
+  constructor(private readonly prisma: PrismaService) {}
+}
+```
+
+Use the generated model delegates on `this.prisma` after adding models and
+regenerating. The service reads the connection URL through `ConfigService`,
+uses the PostgreSQL adapter, and disconnects on application shutdown. HTTP e2e
+tests override the provider so they do not access the cloud database.
+
 ## Compile and run the project
 
 Arcjet protects every registered HTTP route with Shield and a fixed window limit

@@ -5,9 +5,14 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { ArcjetGuard } from './common/guards/arcjet.guard.js';
 import { ArcjetModule } from './lib/arcjet/arcjet.module.js';
+import { PrismaModule } from './lib/database/prisma.module.js';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), ArcjetModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    ArcjetModule,
+    PrismaModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,

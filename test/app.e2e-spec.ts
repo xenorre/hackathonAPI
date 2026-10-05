@@ -22,6 +22,7 @@ import type { Server } from 'node:http';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { AppService } from '../src/app.service.js';
+import { PrismaService } from '../src/lib/database/prisma.service.js';
 
 @Controller('probe')
 class ProbeController {
@@ -46,6 +47,8 @@ describe('Global Arcjet protection (e2e)', () => {
       .useValue({ getOrThrow: () => 'ajkey_test' })
       .overrideProvider(ARCJET)
       .useValue({ protect })
+      .overrideProvider(PrismaService)
+      .useValue({})
       .overrideProvider(Logger)
       .useValue({ warn })
       .compile();
