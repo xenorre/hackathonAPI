@@ -64,12 +64,12 @@ $ pnpm db:deploy
 $ pnpm db:studio
 ```
 
-The initial schema contains only the PostgreSQL datasource and client generator.
-Add models for your application before creating its first migration. Setup does
-not create tables or change cloud data. `pnpm build`, development startup, and
-the test scripts generate the client into `src/generated/prisma`, which is
-ignored by Git. Client generation works without a database URL; starting the app
-and database commands require one. For production, install development
+The schema includes Better Auth's user, session, account, and verification
+models, plus a `UserRole` enum. Apply committed migrations with `pnpm db:deploy`
+on a fresh database. `pnpm build`, development startup, and the test scripts
+generate the client into `src/generated/prisma`, which is ignored by Git.
+Client generation works without a database URL; starting the app and database
+commands require one. For production, install development
 dependencies, build, then prune them and start the compiled application with
 `pnpm start:prod`.
 
@@ -91,6 +91,53 @@ regenerating. The service reads the connection URL through `ConfigService`,
 uses the PostgreSQL adapter, and disconnects on application shutdown. HTTP e2e
 tests override the provider so they do not access the cloud database.
 
+## Better Auth
+
+Email and password authentication uses Better Auth 1.7.7 and the community
+NestJS integration, `@thallesp/nestjs-better-auth` 2.8.0. The global `AuthModule`
+lives in `src/lib/auth` and is imported once in `AppModule`. Its async factory
+receives the existing `PrismaService` and `ConfigService` through Nest injection.
+Feature services can inject the local `AuthService` to read sessions.
+
+Set `BETTER_AUTH_SECRET` to a random value of at least 32 characters and set
+`BETTER_AUTH_URL` to the auth server's URL. Both are required at startup. Generate
+a secret with `openssl rand -base64 32` and keep it in the ignored `.env`.
+If your frontend has a different origin, list it in
+`BETTER_AUTH_TRUSTED_ORIGINS`, separated by commas. Better Auth also trusts its
+own server origin. Origin and CSRF checks remain enabled.
+
+| Method | Endpoint                  | Purpose                                             |
+| ------ | ------------------------- | --------------------------------------------------- |
+| GET    | `/api/auth/ok`            | Auth health check                                   |
+| POST   | `/api/auth/sign-up/email` | Register with `name`, `email`, and `password`       |
+| POST   | `/api/auth/sign-in/email` | Sign in with `email` and `password`                 |
+| GET    | `/api/auth/get-session`   | Read the current cookie session                     |
+| POST   | `/api/auth/sign-out`      | Revoke the current session                          |
+| GET    | `/users/me`               | Return the authenticated user, including their role |
+
+Sessions are stored in PostgreSQL and use Better Auth's default lifetime of
+seven days. Browser clients should send cookies with authenticated requests.
+The Nest integration's auth guard protects controller routes by default. Use
+its `@AllowAnonymous()` or `@OptionalAuth()` decorators when needed. The existing
+`GET /` greeting remains public.
+
+`User.role` is required and restricted by the database enum to `PARTICIPANT` or
+`ADMIN`, defaulting to `PARTICIPANT`. Better Auth also defaults the field to
+`PARTICIPANT` and sets `input: false`. Sending `role: "ADMIN"` during sign up is
+ignored, and changing the role through `/api/auth/update-user` is rejected.
+ADMIN roles must be assigned through trusted server code or database
+administration. No public role assignment endpoint is exposed.
+
+Bootstrap sets `bodyParser: false`, as required by the NestJS integration guide.
+The integration handles auth request bodies and registers parsing for normal
+Nest controller routes. Auth endpoints run as middleware, so they use an
+injected Arcjet middleware check before the Better Auth handler. The existing
+Arcjet guard continues to protect Nest controller routes.
+
+See [integration notes](docs/notes/better-auth-integration.md) for schema
+generation and source references. Email verification and password reset mail
+are not configured in this initial integration.
+
 ## Compile and run the project
 
 Arcjet protects every registered HTTP route with Shield and a fixed window limit
@@ -98,8 +145,9 @@ of 100 requests per 60 seconds per client IP. Both rules enforce in `LIVE` mode.
 Configuration is in `src/lib/arcjet/arcjet.module.ts`, and the global guard is
 registered in `AppModule`.
 
-The SDK requires ESM and Node.js 22.21 or later in the 22 series, or Node.js 24.5
-or later. This project uses ESM for both the application and Jest tests.
+The installed integrations require ESM and Node.js 22.22.1 or later in the 22
+series, or Node.js 24.5 or later. This project uses ESM for both the application
+and Jest tests.
 
 For a fresh checkout, copy `.env.example` to `.env` and set `ARCJET_KEY` to the
 key for your Arcjet site. The local `.env` is ignored by Git. Use

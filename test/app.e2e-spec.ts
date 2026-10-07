@@ -17,6 +17,7 @@ import {
   type INestApplication,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import { Test } from '@nestjs/testing';
 import type { Server } from 'node:http';
 import request from 'supertest';
@@ -27,6 +28,7 @@ import { PrismaService } from '../src/lib/database/prisma.service.js';
 @Controller('probe')
 class ProbeController {
   @Post()
+  @AllowAnonymous()
   post() {
     return 'Protected';
   }
@@ -44,7 +46,15 @@ describe('Global Arcjet protection (e2e)', () => {
       controllers: [ProbeController],
     })
       .overrideProvider(ConfigService)
-      .useValue({ getOrThrow: () => 'ajkey_test' })
+      .useValue({
+        getOrThrow: (key: string) =>
+          ({
+            ARCJET_KEY: 'ajkey_test',
+            BETTER_AUTH_SECRET: 'test_secret_with_at_least_32_characters',
+            BETTER_AUTH_URL: 'http://localhost:3000',
+          })[key],
+        get: (_key: string, defaultValue: unknown) => defaultValue,
+      })
       .overrideProvider(ARCJET)
       .useValue({ protect })
       .overrideProvider(PrismaService)
@@ -53,7 +63,7 @@ describe('Global Arcjet protection (e2e)', () => {
       .useValue({ warn })
       .compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication({ bodyParser: false });
     await app.init();
     getHello = jest.spyOn(app.get(AppService), 'getHello');
   });

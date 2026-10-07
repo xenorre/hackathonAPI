@@ -3,8 +3,9 @@ import {
   fixedWindow,
   shield,
 } from '@arcjet/nest';
-import { Global, Module } from '@nestjs/common';
+import { Global, Logger, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ArcjetMiddleware } from '../../common/middleware/arcjet.middleware.js';
 import { ArcjetService } from './arcjet.service.js';
 
 @Global()
@@ -30,7 +31,7 @@ import { ArcjetService } from './arcjet.service.js';
       },
     }),
   ],
-  providers: [ArcjetService],
-  exports: [ArcjetService],
+  providers: [ArcjetService, ArcjetMiddleware, Logger],
+  exports: [ArcjetService, ArcjetMiddleware],
 })
 export class ArcjetModule {}
