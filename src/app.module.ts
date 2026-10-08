@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { ArcjetGuard } from './common/guards/arcjet.guard.js';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
 import { ArcjetModule } from './lib/arcjet/arcjet.module.js';
 import { AuthModule } from './lib/auth/auth.module.js';
 import { PrismaModule } from './lib/database/prisma.module.js';
@@ -21,6 +22,7 @@ import { UsersModule } from './module/users/users.module.js';
   providers: [
     AppService,
     Logger,
+    ResponseInterceptor,
     { provide: APP_GUARD, useClass: ArcjetGuard },
   ],
 })

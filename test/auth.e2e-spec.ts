@@ -21,6 +21,10 @@ import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import type { Server } from 'node:http';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
+import {
+  type ResponseEnvelope,
+  ResponseInterceptor,
+} from '../src/common/interceptors/response.interceptor.js';
 import { PrismaService } from '../src/lib/database/prisma.service.js';
 
 @Controller('body-probe')
@@ -89,6 +93,7 @@ describe('Better Auth integration (e2e)', () => {
       .compile();
 
     app = fixture.createNestApplication({ bodyParser: false });
+    app.useGlobalInterceptors(app.get(ResponseInterceptor));
     await app.init();
   });
 
@@ -168,9 +173,12 @@ describe('Better Auth integration (e2e)', () => {
       .get('/users/me')
       .set('Cookie', cookies)
       .expect(200);
-    expect((profile.body as { user: { role: string } }).user.role).toBe(
-      'PARTICIPANT',
-    );
+    const profileBody = profile.body as ResponseEnvelope<{
+      user: { role: string };
+    }>;
+    expect(profileBody.statusCode).toBe(200);
+    expect(profileBody.message).toBe('Success');
+    expect(profileBody.data?.user.role).toBe('PARTICIPANT');
 
     await request(app.getHttpServer())
       .post('/api/auth/sign-out')
@@ -216,7 +224,11 @@ describe('Better Auth integration (e2e)', () => {
       .post('/body-probe')
       .send({ message: 'parsed' })
       .expect(201)
-      .expect({ message: 'parsed' });
+      .expect({
+        statusCode: 201,
+        message: 'Success',
+        data: { message: 'parsed' },
+      });
   });
 
   it('rejects an untrusted origin on a signup request with cookies', async () => {

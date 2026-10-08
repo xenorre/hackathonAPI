@@ -23,6 +23,7 @@ import type { Server } from 'node:http';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { AppService } from '../src/app.service.js';
+import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor.js';
 import { PrismaService } from '../src/lib/database/prisma.service.js';
 
 @Controller('probe')
@@ -64,6 +65,7 @@ describe('Global Arcjet protection (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication({ bodyParser: false });
+    app.useGlobalInterceptors(app.get(ResponseInterceptor));
     await app.init();
     getHello = jest.spyOn(app.get(AppService), 'getHello');
   });
@@ -88,7 +90,7 @@ describe('Global Arcjet protection (e2e)', () => {
       .get('/')
       .set('X-Request-Id', 'arcjet-test')
       .expect(200)
-      .expect('Hello World!');
+      .expect({ statusCode: 200, message: 'Success', data: 'Hello World!' });
 
     expect(protect).toHaveBeenCalledTimes(1);
     const protectedRequest = protect.mock.calls[0][0];
