@@ -15,16 +15,18 @@ enum UserRole {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  role          UserRole  @default(PARTICIPANT)
-  sessions      Session[]
-  accounts      Account[]
+  id             String                 @id
+  name           String
+  email          String                 @unique
+  emailVerified  Boolean                @default(false)
+  image          String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  role           UserRole               @default(PARTICIPANT)
+  sessions       Session[]
+  accounts       Account[]
+  hackathons     Hackathon[]
+  participations HackathonParticipant[]
 
   @@map("user")
 }
@@ -74,4 +76,34 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model Hackathon {
+  id           String                 @id @default(cuid())
+  name         String
+  description  String?
+  startDate    DateTime
+  endDate      DateTime
+  isActive     Boolean                @default(true)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  authorId     String
+  author       User                   @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  participants HackathonParticipant[]
+
+  @@index([authorId])
+  @@map("hackathon")
+}
+
+model HackathonParticipant {
+  id          String    @id @default(cuid())
+  hackathonId String
+  userId      String
+  joinedAt    DateTime  @default(now())
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([hackathonId, userId])
+  @@index([userId])
+  @@map("hackathonParticipant")
 }

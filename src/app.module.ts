@@ -9,6 +9,7 @@ import { ArcjetModule } from './lib/arcjet/arcjet.module.js';
 import { AuthModule } from './lib/auth/auth.module.js';
 import { PrismaModule } from './lib/database/prisma.module.js';
 import { UsersModule } from './module/users/users.module.js';
+import { HackathonModule } from './module/hackathon/hackathon.module.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { UsersModule } from './module/users/users.module.js';
     PrismaModule,
     AuthModule,
     UsersModule,
+    HackathonModule,
   ],
   controllers: [AppController],
   providers: [
